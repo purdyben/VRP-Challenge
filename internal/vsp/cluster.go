@@ -147,71 +147,13 @@ func PrintCuster(cl []Cluster) {
 	}
 }
 
-// // Simple Cluster Creates a general cluster of nodes defined by threshold
-// func SimpleCluster(loads []Load, threshold float64) []Cluster {
-// 	// Try start with N number of cluster and merge until unable to.
-
-// 	clusters := make([]Cluster, len(loads))
-
-// 	loads = Sort([]float64{0, 0}, loads)
-// 	for i, l := range loads {
-// 		clusters[i] = Cluster{L: []Load{l}}
-// 	}
-
-// 	for {
-// 		merged := false
-// 		for i := range clusters {
-// 			for j := i + 1; j < len(clusters); j++ {
-// 				centroid1 := calculateCentroid(clusters[i])
-// 				centroid2 := calculateCentroid(clusters[j])
-
-// 				distance := calculateDistance(centroid1, centroid2)
-
-// 				if distance < threshold {
-// 					clusters[i].L = append(clusters[i].L, clusters[j].L...)
-// 					clusters = append(clusters[:j], clusters[j+1:]...)
-// 					merged = true
-// 					break
-// 				}
-// 			}
-// 			if merged {
-// 				break
-// 			}
-// 		}
-// 		if !merged {
-// 			break
-// 		}
-// 	}
-
-// 	return clusters
-// }
-
-// func calculateDistance(point1, point2 []float64) float64 {
-// 	return math.Sqrt(math.Pow(point1[0]-point2[0], 2) + math.Pow(point1[1]-point2[1], 2))
-// }
-
-// func calculateCentroid(cluster Cluster) []float64 {
-// 	var sumX, sumY float64
-// 	for _, point := range cluster.L {
-// 		m := driver.Middle(point.Pickup, point.Dropoff)
-// 		sumX += m[0]
-// 		sumY += m[1]
-// 	}
-// 	return []float64{sumX / float64(len(cluster.L)), sumY / float64(len(cluster.L))}
-// }
-
-// func PrintCuster(cl []Cluster) {
-// 	for i, c := range cl {
-// 		for _, l := range c.Loads() {
-// 			fmt.Println(i, l.LoadNumber)
-// 		}
-// 		fmt.Println("")
-// 	}
-// }
-
 // Another idea is to use Kmeans clustering, this has a defined cluster number which could be an issue
 type KmeansClusterObservable struct {
 	Load
+}
+
+func NewClusterObservable(l Load) KmeansClusterObservable {
+	return KmeansClusterObservable{l}
 }
 
 func (c KmeansClusterObservable) Coordinates() clusters.Coordinates {
@@ -220,4 +162,8 @@ func (c KmeansClusterObservable) Coordinates() clusters.Coordinates {
 
 func (c KmeansClusterObservable) Distance(point clusters.Coordinates) float64 {
 	return c.GetDistance()
+}
+
+func (c KmeansClusterObservable) Data() Load {
+	return c.Load
 }

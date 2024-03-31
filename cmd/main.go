@@ -1,16 +1,21 @@
 package main
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/fs"
 	"log/slog"
+	"math"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 
-	"vorto/internal/driver"
 	"vorto/internal/vsp"
+
+	"github.com/muesli/clusters"
+	"github.com/muesli/kmeans"
 )
 
 // Cli
@@ -64,7 +69,6 @@ func parseFile(file string) []vsp.Load {
 	parts := strings.Split(file, "\n")[1:]
 	var loads []vsp.Load
 	for _, line := range parts {
-		// fmt.Println(line)
 		load := parseLine(line)
 		if load == nil {
 			continue
@@ -96,137 +100,229 @@ func getfiles(dir string) ([]fs.FileInfo, error) {
 	return files, err
 }
 
+type Result struct {
+	Cost     float64
+	PrintOut string
+}
+
 func main() {
 	path := os.Args[1] // Get Dir From Args
 	b, err := ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
-	proccess(string(b))
+	loads := parseFile(string(b))
+	results := make(chan Result, 20)
+	exit := make(chan bool)
+	answer := Result{
+		Cost:     math.MaxFloat64,
+		PrintOut: "",
+	}
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		TestClusteringThreshhold(results, loads)
+	}()
+	go func() {
+		for {
+			select {
+			case a := <-results:
+				if a.Cost < answer.Cost {
+					answer = a
+				}
+			case <-exit:
+				return
+			}
+		}
+	}()
+
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		TestClusteringGreedyThreshhold(results, loads)
+		// buckets := 4
+		// var driverPaths [][]vsp.Load
+		// for {
+		// 	driverPaths, err = vsp.Greedy(buckets, loads)
+		// 	if err != nil {
+		// 		// fmt.Println(err)
+		// 		buckets += 1
+		// 		continue
+		// 	}
+		// 	break
+		// }
+		// for _, l := range driverRoutes {
+		// 	driverPaths = append(driverPaths, l)
+		// }
+
+		// results <- CalcResult(driverPaths)
+	}()
+
+	wg.Wait()
+	exit <- true
+	// fmt.Println(strings.Trim(answer.PrintOut, "\n"))
+	fmt.Println(answer.Cost)
+
+	var d clusters.Observations
+	for _, l := range loads {
+		d = append(d, vsp.NewClusterObservable(l))
+	}
+
+	km := kmeans.New()
+	clusters, err := km.Partition(d, 4)
+
+	for _, c := range clusters {
+		fmt.Printf("Centered at x: %.2f y: %.2f\n", c.Center[0], c.Center[1])
+		fmt.Printf("Matching data points: %+v\n\n", c.Observations)
+	}
+	for _, c := range clusters {
+		for _, o := range c.Observations {
+			fmt.Println(o.(vsp.KmeansClusterObservable).Data())
+		}
+	}
 }
 
-func proccess(file string) {
-	loads := parseFile(file)
-	paths := [][]vsp.Load{}
-	var cost float64
-	for len(loads) > 0 {
-		p, r := vsp.OptimizePath(loads)
-		paths = append(paths, p)
-		loads = r
+func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
+	var wg sync.WaitGroup
+	for i := range 50 {
+		wg.Add(1)
+		go func(threshhold int) {
+			defer wg.Done()
+			origJSON, err := json.Marshal(loads)
+			if err != nil {
+				panic(err)
+			}
+
+			clone := []vsp.Load{}
+			if err = json.Unmarshal(origJSON, &clone); err != nil {
+				panic(err)
+			}
+			clusters := vsp.MergeCluster(clone, float64(10+i*5))
+
+			allPaths := [][]vsp.Load{}
+
+			for _, c := range clusters {
+				buckets := 4
+				var driverPaths [][]vsp.Load
+				for {
+					driverPaths, err = vsp.Greedy(buckets, c.Loads())
+					if err != nil {
+						// fmt.Println(err)
+						buckets += 1
+						continue
+					}
+					break
+				}
+				for _, d := range driverPaths {
+					allPaths = append(allPaths, d)
+				}
+			}
+
+			// // pathsOfPoints := [][]vsp.Point{}
+			// driverPaths := [][]vsp.Load{}
+			// for _, c := range clusters {
+			// 	driverRoutes := TestRec(c.Loads())
+
+			// 	for _, l := range driverRoutes {
+			// 		driverPaths = append(driverPaths, l)
+			// 	}
+			// }
+			// fmt.Println(CalcResult(allPaths))
+			ch <- CalcResult(allPaths)
+		}(10 + i)
 	}
-	for _, p := range paths {
-		n := []int{}
-		for _, i := range p {
-			n = append(n, i.LoadNumber)
+	wg.Wait()
+}
+
+func TestClusteringThreshhold(ch chan Result, loads []vsp.Load) {
+	var wg sync.WaitGroup
+	for i := range 350 {
+		wg.Add(1)
+		go func(threshhold int) {
+			defer wg.Done()
+			origJSON, err := json.Marshal(loads)
+			if err != nil {
+				panic(err)
+			}
+
+			clone := []vsp.Load{}
+			if err = json.Unmarshal(origJSON, &clone); err != nil {
+				panic(err)
+			}
+			clusters := vsp.MergeCluster(clone, float64(10+i))
+
+			// pathsOfPoints := [][]vsp.Point{}
+			driverPaths := [][]vsp.Load{}
+			for _, c := range clusters {
+				driverRoutes := TestRec(c.Loads())
+
+				for _, l := range driverRoutes {
+					driverPaths = append(driverPaths, l)
+				}
+			}
+
+			ch <- CalcResult(driverPaths)
+		}(10 + i)
+	}
+	wg.Wait()
+}
+
+// Stored the printout and total cost, Used for Eval
+func CalcResult(drivers [][]vsp.Load) Result {
+	r := Result{
+		Cost:     0,
+		PrintOut: "",
+	}
+	// pathsOfPoints := [][]vsp.Point{}
+	// Each List of Loads is the route the driver needs to drive
+	for index, d := range drivers {
+
+		// Get Print Out
+		loadNumbers := []int{}
+		for _, l := range d {
+			loadNumbers = append(loadNumbers, l.LoadNumber)
 		}
-		PrintAnswerStOut(n)
-		path := vsp.ToPath(p)
+
+		// Note drivers does not include start 0,0 and end 0,0
+		if len(loadNumbers) > 0 {
+			r.PrintOut += CreateEvalPrintout(loadNumbers)
+			if index < len(drivers) {
+				r.PrintOut += "\n"
+			}
+		}
+
+		// Unwrap Loads to a list of points
+		path := vsp.ToPath(d)
+		// add start 0,0 and end 0,0 to get cost
 		path = vsp.AddStartAndEndPoints(path)
-		cost += vsp.TotalCost(1, vsp.CalcTotalDistance(path))
-	}
-	fmt.Println("Costs", cost)
 
-	fmt.Println()
-	// for i := range 10 {
-	loads = parseFile(file)
-	for i := range 10 {
-		clusters := vsp.MergeCluster(loads, float64(i*10))
-		cost = 0
-		for _, c := range clusters {
-			p1, p2 := vsp.OptimizePath(c.Loads())
-			loadNumbers := []int{}
-			for _, l := range p1 {
-				loadNumbers = append(loadNumbers, l.LoadNumber)
-			}
-			path := vsp.ToPath(p1)
-			path = vsp.AddStartAndEndPoints(path)
-			cost += vsp.TotalCost(1, vsp.CalcTotalDistance(path))
-			PrintAnswerStOut(loadNumbers)
-
-			loadNumbers = []int{}
-			for _, l := range p2 {
-				loadNumbers = append(loadNumbers, l.LoadNumber)
-			}
-			path = vsp.ToPath(p2)
-			path = vsp.AddStartAndEndPoints(path)
-			cost += vsp.TotalCost(1, vsp.CalcTotalDistance(path))
-			PrintAnswerStOut(loadNumbers)
-		}
-		fmt.Println("Costs", cost)
+		r.Cost += vsp.TotalCost(1, vsp.CalcTotalDistance(path))
+		// pathsOfPoints = append(pathsOfPoints, path)
 	}
 
-	// }
-	// fmt.Println(c.Loads())
-	// path1, r := vsp.OptimizePath(c.Loads())
-	// n := []int{}
-	// for _, i := range path1 {
-	// 	n = append(n, i.LoadNumber)
-	// }
-	// PrintAnswerStOut(n)
-	// n = []int{}
-	// for _, i := range r {
-	// 	n = append(n, i.LoadNumber)
-	// }
-	// PrintAnswerStOut(n)
-	// }
-	// for _, l := range loads {
-	// 	vsp.Loads[l.LoadNumber] = l
-	// }
-
-	// set up a random two-dimensional data set (float64 values between 0.0 and 1.0)
-	// var d clusters.Observations
-	// // // var
-	// for _, l := range loads {
-	// 	// vsp.
-	// 	d = append(d, vsp.KmeansClusterObservable{Load: l})
-	// }
-
-	// // Partition the data points into 16 clusters
-	// km := kmeans.New()
-	// clusters, _ := km.Partition(d, len(loads)/2)
-	// for _, c := range clusters {
-	// 	fmt.Printf("Centered at x: %.2f y: %.2f\n", c.Center[0], c.Center[1])
-	// 	fmt.Printf("Matching data points: %+v\n\n", c.Observations)
-	// }
-
-	// for _, c := range clusters {
-	// 	l := []vsp.Load{}
-	// 	for _, o := range c.Observations {
-	// 		a := o.(vsp.KmeansClusterObservable)
-	// 		l = append(l, a.Load)
-	// 		// fmt.Println(a)
-	// 	}
-	// 	path1, _ := vsp.OptimizePath(l)
-
-	// 	n := []int{}
-	// 	for _, i := range path1 {
-	// 		n = append(n, i.LoadNumber)
-	// 	}
-	// 	PrintAnswerStOut(n)
-	// }
-
-	// OptimizePath
-	// Cluster all of the nodes
-
-	// Within each cluster check paths
-	// 	Return all paths needed
-
-	// c := greedy.SimpleCluster(loads, 1)
-	// var L [][]driver.Load
-
-	// for index, i := range c {
-	// 	loadNumbers := []int{}
-	// 	L = append(L, []driver.Load{})
-	// 	for _, p := range i.Points() {
-	// 		loadNumbers = append(loadNumbers, p.LoadNumber)
-	// 		L[index] = append(L[index], p.Load)
-	// 	}
-	// 	PrintAnswerStOut(loadNumbers)
-	// }
-	// fmt.Println(TotalCost(L))
+	return r
 }
 
-func PrintAnswerStOut(l []int) string {
+// mean cost: 48713.98992491605
+// mean run time: 293.98015567234586ms
+
+// Recersivly Split up loads until you have everything covered.
+func TestRec(loads []vsp.Load) [][]vsp.Load {
+	var res [][]vsp.Load
+	p1, p2 := vsp.OptimizeClosetPath(loads)
+	if len(p2) > 0 {
+		paths := TestRec(p2)
+		for _, p := range paths {
+			res = append(res, p)
+		}
+	}
+	res = append(res, p1)
+	return res
+}
+
+// Create Printout for Eval
+func CreateEvalPrintout(l []int) string {
 	if len(l) < 1 {
 		return ""
 	}
@@ -237,16 +333,5 @@ func PrintAnswerStOut(l []int) string {
 
 	// Join strings with commas
 	result_string := "[" + strings.Join(string_integers, ",") + "]"
-	fmt.Println(result_string)
 	return result_string
-}
-
-func TotalCost(load [][]driver.Load) float64 {
-	cost := float64(0)
-
-	for _, l := range load {
-		cost += driver.CalcLoadsDistence(l)
-	}
-	total_cost := float64(500*len(load)) + cost
-	return total_cost
 }

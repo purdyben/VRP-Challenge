@@ -105,3 +105,16 @@ func ToPath(loads []Load) []Point {
 	}
 	return res
 }
+
+// TODO switch []Load to a static map of
+type Loads struct {
+	L map[int]Load
+}
+
+func (l *Loads) GetLoadsList() []Load {
+	return nil
+}
+
+func (l *Loads) GetLoad(i int) Load {
+	return l.L[i]
+}
