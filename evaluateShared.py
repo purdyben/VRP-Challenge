@@ -84,15 +84,12 @@ def loadSolutionFromString(solutionStr):
     return schedules, ""
     
 def loadCountOrAssignmentError(problem, solutionSchedules):
-    print(problem, solutionSchedules)
     solutionLoadIDs = {}
     for schedule in solutionSchedules:
         for loadID in schedule:
             if loadID in solutionLoadIDs:
                 return "load " + loadID + " was included in at least two driver schedules"
             solutionLoadIDs[loadID] = True
-    # print(len(solutionLoadIDs),len(problem.loads))
-    # print(solutionLoadIDs,problem.loads)
     if len(solutionLoadIDs) != len(problem.loads):
         return "the solution load count is not equal to the problem load count"
         
