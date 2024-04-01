@@ -26,7 +26,6 @@ Manual Build:
 
 #### Approach: 
 
-My idea
 - Cluster the given points based on approximation 
  	- Merge Clustering 
  	- Kmean Clustering
@@ -35,10 +34,8 @@ My idea
 - Use goroutines to thread the computation
 
 #### Training Data Testing 
-Best Score 
 - mean cost: 47759.118072847494
 - mean run time: 279.8213050478981ms
-
 
 #### Note: 
 - type  []Load: could be an unfiltered set of Loads or a list of loads for a driver 
