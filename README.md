@@ -20,12 +20,12 @@ Eval:
 Manual Build:
 - go build -o bin/main cmd/main.go 
 - chmod +x bin/main
+
 #### Project Structure: 
-
 - cmd/main.go is the main file for the project 
-- internal/vrp
-#### Approach: 
+- internal/vrp contains package code 
 
+#### Approach: 
 - Cluster the given points based on approximation 
  	- Merge Clustering 
  	- Kmean Clustering
