@@ -1,38 +1,41 @@
 Benjamin Purdy Vorto VTP Challange
 
 #### Problem:
-The vehicle routing problem (VRP) which asks "What is the optimal set of routes for a fleet of vehicles to traverse in order to deliver to a given set of customers?" It generalises the travelling salesman problem (TSP). 
+The vehicle routing problem (VRP) asks "What is the optimal set of routes for a fleet of vehicles to traverse to deliver to a given set of customers?" It generalizes the traveling salesman problem (TSP). 
 
 Determining the optimal solution to VRP is NP-hard. Felt this 
 
 #### Instructions How to Run:
 
-Please Run ```make``` to build the go binary stored in /bin/main 
+Build:
+- Please Run ```make``` to build the go binary stored in /bin/main 
 
-```make eval``` will build and run evaluateShared.py and test data trainingProblems
+Training Data
+- ```make eval``` will build and run evaluateShared.py and test data training problems
  
-Alternatively please run ```make evalb args="--problemDir YOUR_FOLDER"```
-
-to build and run your evaluation  
+To run manually 
+- build binary 
+- ```python3 evaluateShared.py --cmd ./bin/main --problem YOUR_FOLDER ```
 
 #### Project Structure: 
 
-#### Solution: 
+- cmd/main.go is the main file for the project 
 
-#### Interesting Notes:
+#### Approach: 
 
-#### Failers:
-As every driver starts and end at (0,0) we will in turn create a weighted tree structure and with a cyclic component. 
+My idea
+- Cluster the given points based on approximation 
+ 	- Merge Clustering 
+ 	- Kmean Clustering
+- Find Paths within Clusters 
+- Repeat with different starting values to find the best approximation 
+- Use goroutines to thread the computation
 
+#### Training Data Testing 
+Best Score 
+- mean cost: 47759.118072847494
+- mean run time: 279.8213050478981ms
 
-There is a path from every point to (0,0)
+#### Notes:
+- This was not optimized for run time. As improvements can be done  
 
-Every Node is 
-
-
-Optimization using trainingProblems: 
-
-Problem 1 line 9. 
-9 (-41.48405901129298,-139.38690997500595) (-82.99128121032932,73.38972329128366)
-
-0,0 -> pickup -> dropoff -> 0.0 = dis: 473.00277744002494 making this a solo trip, 
