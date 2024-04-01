@@ -23,7 +23,7 @@ Manual Build:
 #### Project Structure: 
 
 - cmd/main.go is the main file for the project 
-
+- internal/vrp
 #### Approach: 
 
 - Cluster the given points based on approximation 

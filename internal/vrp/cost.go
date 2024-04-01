@@ -1,4 +1,4 @@
-package vsp
+package vrp
 
 // Given a list of Loads, calculate the total cost of this trip
 //

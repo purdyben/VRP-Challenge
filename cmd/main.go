@@ -17,7 +17,7 @@ import (
 	"strings"
 	"sync"
 
-	"vorto/internal/vsp"
+	"vorto/internal/vrp"
 
 	"github.com/muesli/clusters"
 	"github.com/muesli/kmeans"
@@ -103,7 +103,7 @@ func main() {
  * Given a cluster threshold create driver paths and return results to the results channel
  * loads: Entire file input
  */
-func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
+func EvalMergeClustering(ch chan Result, loads []vrp.Load) {
 	var wg sync.WaitGroup
 	for i := range 350 {
 		wg.Add(1)
@@ -111,13 +111,13 @@ func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
 			defer wg.Done()
 
 			// for safty make a copy :)
-			clone := make([]vsp.Load, len(loads))
+			clone := make([]vrp.Load, len(loads))
 			copy(clone, loads)
 
 			// each cluster is a subset of points near each other
-			clusters := vsp.MergeCluster(clone, float64(threshold))
+			clusters := vrp.MergeCluster(clone, float64(threshold))
 
-			driverRoutes := [][]vsp.Load{}
+			driverRoutes := [][]vrp.Load{}
 			for _, c := range clusters {
 
 				// create driver paths from subset
@@ -133,7 +133,7 @@ func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
 			ch <- EvalResult(driverRoutes)
 
 			for i := range 3 {
-				c := vsp.Copy(driverRoutes)
+				c := vrp.Copy(driverRoutes)
 				ch <- EvalResult(CombineJobs(c, i)) // optimization test
 			}
 		}(10 + i)
@@ -145,11 +145,11 @@ func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
  * Given a cluster threshold create driver paths and return results to results channel
  * loads: Entire file input
  */
-func EvalClusteringKmeans(ch chan Result, loads []vsp.Load) {
+func EvalClusteringKmeans(ch chan Result, loads []vrp.Load) {
 	for i := 1; (i) < int(math.Max(float64((len(loads)%3)), 4)); i++ { // test multiple number of clusters
 		var d clusters.Observations
 		for _, l := range loads {
-			d = append(d, vsp.NewClusterObservable(l)) // wrapper for Observations interface
+			d = append(d, vrp.NewClusterObservable(l)) // wrapper for Observations interface
 		}
 
 		km, err := kmeans.NewWithOptions(0.05, nil)
@@ -157,15 +157,15 @@ func EvalClusteringKmeans(ch chan Result, loads []vsp.Load) {
 		if err != nil {
 			return
 		}
-		driverRoutes := [][]vsp.Load{}
+		driverRoutes := [][]vrp.Load{}
 
 		// n := make(map[int]int)
 
 		for _, c := range clusters { // Get Nodes from Cluster
 
-			l := []vsp.Load{}
+			l := []vrp.Load{}
 			for _, o := range c.Observations {
-				loadData := o.(vsp.KmeansClusterObservable).Data() // unwrap load data
+				loadData := o.(vrp.KmeansClusterObservable).Data() // unwrap load data
 
 				l = append(l, loadData)
 				// TODO remove duplicate checker
@@ -184,19 +184,19 @@ func EvalClusteringKmeans(ch chan Result, loads []vsp.Load) {
 		ch <- EvalResult(driverRoutes)
 
 		for i := range 3 {
-			c := vsp.Copy(driverRoutes)
+			c := vrp.Copy(driverRoutes)
 			ch <- EvalResult(CombineJobs(c, i))
 		}
 	}
 }
 
 // Stored the printout and total cost, Used for Eval
-func EvalResult(drivers [][]vsp.Load) Result {
+func EvalResult(drivers [][]vrp.Load) Result {
 	r := Result{
 		Cost:     0,
 		PrintOut: "",
 	}
-	// pathsOfPoints := [][]vsp.Point{}
+	// pathsOfPoints := [][]vrp.Point{}
 	// Each List of Loads is the route the driver needs to drive
 	for index, d := range drivers {
 
@@ -207,15 +207,15 @@ func EvalResult(drivers [][]vsp.Load) Result {
 		}
 
 		// Unwrap Loads to a list of points
-		path := vsp.ToPath(d)
+		path := vrp.ToPath(d)
 		// add start 0,0 and end 0,0 to get cost
-		path = vsp.AddStartAndEndPoints(path)
+		path = vrp.AddStartAndEndPoints(path)
 
-		r.Cost += vsp.TotalCost(1, vsp.CalcTotalDistance(path))
+		r.Cost += vrp.TotalCost(1, vrp.CalcTotalDistance(path))
 
 		// Note drivers does not include start 0,0 and end 0,0
 		if len(loadNumbers) > 0 {
-			r.PrintOut += CreateEvalPrintout(loadNumbers) //+ " " + fmt.Sprint(vsp.CalcTotalDistance(path))
+			r.PrintOut += CreateEvalPrintout(loadNumbers) //+ " " + fmt.Sprint(vrp.CalcTotalDistance(path))
 			if index < len(drivers) {
 				r.PrintOut += "\n"
 			}
@@ -226,10 +226,10 @@ func EvalResult(drivers [][]vsp.Load) Result {
 }
 
 // Recersivly Split up loads until you have everything covered.
-func RecursivelyComputePath(loads []vsp.Load) [][]vsp.Load {
-	var res [][]vsp.Load
+func RecursivelyComputePath(loads []vrp.Load) [][]vrp.Load {
+	var res [][]vrp.Load
 	// Creates paths based on closest nodes
-	p1, p2 := vsp.OptimizeClosetPath(loads)
+	p1, p2 := vrp.OptimizeClosetPath(loads)
 	if len(p2) > 0 {
 		paths := RecursivelyComputePath(p2)
 		for _, p := range paths {
@@ -258,18 +258,18 @@ func CreateEvalPrintout(l []int) string {
 // Minior improvment by recombining short paths
 // 48713.98992491605 -> 47759.118072847494 nice jump :D
 // Takes a list of driver paths, and combines short paths to remove drivers and cost cost
-func CombineJobs(drivers [][]vsp.Load, length int) [][]vsp.Load {
+func CombineJobs(drivers [][]vrp.Load, length int) [][]vrp.Load {
 	if length == 0 {
 		return drivers
 	}
 
-	tempLoads := []vsp.Load{}
+	tempLoads := []vrp.Load{}
 	indexList := map[int]int{}
 	totalDis := map[int]float64{}
 	for i, d := range drivers {
-		path := vsp.ToPath(d)
-		path = vsp.AddStartAndEndPoints(path)
-		totalDis[i] = vsp.CalcTotalDistance(path)
+		path := vrp.ToPath(d)
+		path = vrp.AddStartAndEndPoints(path)
+		totalDis[i] = vrp.CalcTotalDistance(path)
 
 		if len(d) <= length {
 			for _, c := range d {
@@ -279,7 +279,7 @@ func CombineJobs(drivers [][]vsp.Load, length int) [][]vsp.Load {
 		}
 	}
 
-	newDrivers := [][]vsp.Load{}
+	newDrivers := [][]vrp.Load{}
 	// remove short paths
 	for i, l := range drivers {
 		if _, ok := indexList[i]; !ok {
@@ -311,7 +311,7 @@ func parsePoint(pointStr string) []float64 {
 	return []float64{x, y}
 }
 
-func parseLine(line string) *vsp.Load {
+func parseLine(line string) *vrp.Load {
 	if len(line) == 0 { // ketch "eof or \n"
 		return nil
 	}
@@ -322,12 +322,12 @@ func parseLine(line string) *vsp.Load {
 	}
 	pickup := parsePoint(parts[1])
 	dropoff := parsePoint(parts[2])
-	return &vsp.Load{LoadNumber: number, Pickup: pickup, Dropoff: dropoff}
+	return &vrp.Load{LoadNumber: number, Pickup: pickup, Dropoff: dropoff}
 }
 
-func parseFile(file string) []vsp.Load {
+func parseFile(file string) []vrp.Load {
 	parts := strings.Split(file, "\n")[1:]
-	var loads []vsp.Load
+	var loads []vrp.Load
 	for _, line := range parts {
 		load := parseLine(line)
 		if load == nil {
@@ -349,7 +349,7 @@ func readFile(path string) ([]byte, error) {
 
 // =====  Failed tests disregards
 
-func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
+func TestClusteringGreedyThreshhold(ch chan Result, loads []vrp.Load) {
 	var wg sync.WaitGroup
 	for i := range 250 {
 		wg.Add(1)
@@ -360,19 +360,19 @@ func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
 				panic(err)
 			}
 
-			clone := []vsp.Load{}
+			clone := []vrp.Load{}
 			if err = json.Unmarshal(origJSON, &clone); err != nil {
 				panic(err)
 			}
-			clusters := vsp.MergeCluster(clone, float64(threshold))
+			clusters := vrp.MergeCluster(clone, float64(threshold))
 
-			allPaths := [][]vsp.Load{}
+			allPaths := [][]vrp.Load{}
 
 			for _, c := range clusters {
 				buckets := 4
-				var driverPaths [][]vsp.Load
+				var driverPaths [][]vrp.Load
 				for {
-					driverPaths, err = vsp.BucketsTest(buckets, c.Loads())
+					driverPaths, err = vrp.BucketsTest(buckets, c.Loads())
 					if err != nil {
 						buckets += 1
 						continue
@@ -390,8 +390,8 @@ func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
 	wg.Wait()
 }
 
-func TestWithOutClustering(ch chan Result, loads []vsp.Load) {
-	driverPaths := [][]vsp.Load{}
+func TestWithOutClustering(ch chan Result, loads []vrp.Load) {
+	driverPaths := [][]vrp.Load{}
 	driverRoutes := RecursivelyComputePath(loads)
 
 	for _, l := range driverRoutes {
@@ -400,7 +400,7 @@ func TestWithOutClustering(ch chan Result, loads []vsp.Load) {
 	ch <- EvalResult(driverPaths)
 
 	for i := range 3 {
-		c := vsp.Copy(driverRoutes)
+		c := vrp.Copy(driverRoutes)
 		ch <- EvalResult(CombineJobs(c, i)) // optimization test
 	}
 }
