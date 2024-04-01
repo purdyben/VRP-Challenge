@@ -363,7 +363,7 @@ func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
 			if err = json.Unmarshal(origJSON, &clone); err != nil {
 				panic(err)
 			}
-			clusters := vsp.MergeCluster(clone, float64(i))
+			clusters := vsp.MergeCluster(clone, float64(threshold))
 
 			allPaths := [][]vsp.Load{}
 
