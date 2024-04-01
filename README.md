@@ -41,5 +41,5 @@ Best Score
 
 
 #### Note: 
-- type  []Load: unfiltered Loads or a list of loads for a driver 
+- type  []Load: could be an unfiltered set of Loads or a list of loads for a driver 
 - type  [][]Load: list of all drivers and the driver loads 
