@@ -1,10 +1,15 @@
+/*
+Benjamin Purdy Vorto Algorithmic Challenge Submission
+// 48622.74570144862
+// 48643.491499678574
+// 47759.118072847494
+*/
 package main
 
 import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/fs"
 	"log/slog"
 	"math"
 	"os"
@@ -29,7 +34,6 @@ var (
 // PrintOut: "[1]
 // [4,2]
 // [3]"
-
 type Result struct {
 	Cost     float64
 	PrintOut string
@@ -43,7 +47,7 @@ func init() {
 func main() {
 	dirpath := os.Args[1] // Get Dir From Args
 
-	b, err := ReadFile(dirpath)
+	b, err := readFile(dirpath)
 	if err != nil {
 		panic(err)
 	}
@@ -78,7 +82,7 @@ func main() {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		EvalClusteringThreshhold(results, loads)
+		EvalMergeClustering(results, loads)
 	}()
 
 	// Test 2 Kmeans Clustering
@@ -163,76 +167,88 @@ func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
 	wg.Wait()
 }
 
-func EvalClusteringThreshhold(ch chan Result, loads []vsp.Load) {
+/**
+ * Given a cluster threshhold create driver paths and return results to results channel
+ * loads: Entire file input
+ */
+func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
 	var wg sync.WaitGroup
 	for i := range 350 {
 		wg.Add(1)
 		go func(threshhold int) {
 			defer wg.Done()
-			origJSON, err := json.Marshal(loads)
-			if err != nil {
-				panic(err)
-			}
 
-			clone := []vsp.Load{}
-			if err = json.Unmarshal(origJSON, &clone); err != nil {
-				panic(err)
-			}
-			clusters := vsp.MergeCluster(clone, float64(10+i))
+			// for safty make a copy :)
+			clone := make([]vsp.Load, len(loads))
+			copy(clone, loads)
+
+			// each cluster is a subset of points near each other
+			clusters := vsp.MergeCluster(clone, float64(threshhold))
 
 			driverRoutes := [][]vsp.Load{}
 			for _, c := range clusters {
+
+				// create driver paths from subset
 				driverPaths := RecursivelyComputePath(c.Loads())
 
+				// unpack
 				for _, l := range driverPaths {
 					driverRoutes = append(driverRoutes, l)
 				}
 			}
 
+			// evaluate results
 			ch <- EvalResult(driverRoutes)
 
 			for i := range 3 {
 				c := vsp.Copy(driverRoutes)
-				ch <- EvalResult(CombineJobs(c, i))
+				ch <- EvalResult(CombineJobs(c, i)) // optimization test
 			}
 		}(10 + i)
 	}
 	wg.Wait()
 }
 
-// loads: Entire file input
+/**
+ * Given a cluster threshhold create driver paths and return results to results channel
+ * loads: Entire file input
+ */
 func EvalClusteringKmeans(ch chan Result, loads []vsp.Load) {
-	for i := 1; (i) < int(math.Max(float64((len(loads)%2)), 4)); i++ {
+	for i := 1; (i) < int(math.Max(float64((len(loads)%3)), 4)); i++ { // test multiple number of clusters
 		var d clusters.Observations
 		for _, l := range loads {
-			d = append(d, vsp.NewClusterObservable(l))
+			d = append(d, vsp.NewClusterObservable(l)) // wrapper for Observations interface
 		}
-		km, err := kmeans.NewWithOptions(0.1, nil)
+
+		km, err := kmeans.NewWithOptions(0.05, nil)
 		clusters, err := km.Partition(d, i)
 		if err != nil {
 			return
 		}
 		driverRoutes := [][]vsp.Load{}
 
-		n := make(map[int]int)
-		// Get Nodes from Cluster
-		for _, c := range clusters {
+		// n := make(map[int]int)
+
+		for _, c := range clusters { // Get Nodes from Cluster
 
 			l := []vsp.Load{}
 			for _, o := range c.Observations {
-				loadData := o.(vsp.KmeansClusterObservable).Data()
+				loadData := o.(vsp.KmeansClusterObservable).Data() // unwrap load data
 
-				if _, ok := n[loadData.LoadNumber]; !ok {
-					n[loadData.LoadNumber] = 1
-					l = append(l, loadData)
-				}
+				l = append(l, loadData)
+				// TODO remove duplicate checker
+				// if _, ok := n[loadData.LoadNumber]; !ok {
+				// 	n[loadData.LoadNumber] = 1
+				// l = append(l, loadData)
+				// }
 			}
-
+			// create driver paths from subset
 			for _, l := range RecursivelyComputePath(l) {
 				driverRoutes = append(driverRoutes, l)
 			}
 		}
 
+		// evaluate results
 		ch <- EvalResult(driverRoutes)
 
 		for i := range 3 {
@@ -242,9 +258,6 @@ func EvalClusteringKmeans(ch chan Result, loads []vsp.Load) {
 	}
 }
 
-// 48622.74570144862
-// 48643.491499678574
-// 47759.118072847494
 // Stored the printout and total cost, Used for Eval
 func EvalResult(drivers [][]vsp.Load) Result {
 	r := Result{
@@ -311,9 +324,9 @@ func CreateEvalPrintout(l []int) string {
 }
 
 // Minior improvment by recombining short paths
-// 48713.98992491605 -> 48622.74570144862
+// 48713.98992491605 -> 47759.118072847494 nice jump :D
 //
-// Takes the a list of driver paths and combines short paths and remove drivers
+// Takes a list of driver paths, and combines short paths to remove drivers and cost cost
 func CombineJobs(drivers [][]vsp.Load, length int) [][]vsp.Load {
 	if length == 0 {
 		return drivers
@@ -349,10 +362,6 @@ func CombineJobs(drivers [][]vsp.Load, length int) [][]vsp.Load {
 		newDrivers = append(newDrivers, l)
 	}
 	return newDrivers
-}
-
-func remove[T any](slice []T, s int) []T {
-	return append(slice[:s], slice[s+1:]...)
 }
 
 // === File Parsing ===
@@ -399,23 +408,10 @@ func parseFile(file string) []vsp.Load {
 	return loads
 }
 
-func ReadFile(path string) ([]byte, error) {
+func readFile(path string) ([]byte, error) {
 	b, err := os.ReadFile(path) // just pass the file name
 	if err != nil {
 		panic(err)
 	}
 	return b, err
-}
-
-func getfiles(dir string) ([]fs.FileInfo, error) {
-	f, err := os.Open(dir)
-	if err != nil {
-		panic(err)
-	}
-	files, err := f.Readdir(0)
-	if err != nil {
-		panic(err)
-	}
-
-	return files, err
 }
