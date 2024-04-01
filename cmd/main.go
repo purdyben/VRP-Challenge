@@ -383,16 +383,6 @@ func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
 				}
 			}
 
-			// // pathsOfPoints := [][]vsp.Point{}
-			// driverPaths := [][]vsp.Load{}
-			// for _, c := range clusters {
-			// 	driverRoutes := RecursivelyComputePath(c.Loads())
-
-			// 	for _, l := range driverRoutes {
-			// 		driverPaths = append(driverPaths, l)
-			// 	}
-			// }
-			// fmt.Println(EvalResult(allPaths))
 			ch <- EvalResult(allPaths)
 		}(10 + i)
 	}
