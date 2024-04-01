@@ -10,13 +10,16 @@ Determining the optimal solution to VRP is NP-hard.
 Build:
 - Please Run ```make``` to build the go binary stored in /bin/main 
 
-Training Data
+Training Data Testing:
 - ```make eval``` will build and run evaluateShared.py and test data training problems
  
-To run manually 
+Eval: 
 - build binary 
 - ```python3 evaluateShared.py --cmd ./bin/main --problem YOUR_FOLDER ```
 
+Manual Build:
+- go build -o bin/main cmd/main.go 
+- chmod +x bin/main
 #### Project Structure: 
 
 - cmd/main.go is the main file for the project 

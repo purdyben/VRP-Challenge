@@ -256,7 +256,6 @@ func CreateEvalPrintout(l []int) string {
 
 // Minior improvment by recombining short paths
 // 48713.98992491605 -> 47759.118072847494 nice jump :D
-//
 // Takes a list of driver paths, and combines short paths to remove drivers and cost cost
 func CombineJobs(drivers [][]vsp.Load, length int) [][]vsp.Load {
 	if length == 0 {
