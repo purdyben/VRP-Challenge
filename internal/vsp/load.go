@@ -29,6 +29,7 @@ func DistanceFromDepo(point []float64) float64 {
 
 // this function adds a start and end node
 // - note: a list of Loads won't include start, end 0,0
+// - this path is a driver path
 func CalcLoadsDistance(path []Load) float64 {
 	points := [][]float64{startnode}
 	for _, l := range path {

@@ -94,6 +94,7 @@ func main() {
 
 	wg.Wait()
 	exit <- true
+	// Note this line Print the output to be evaluated
 	fmt.Println(strings.Trim(answer.PrintOut, "\n"))
 	// fmt.Println(answer.Cost)
 }

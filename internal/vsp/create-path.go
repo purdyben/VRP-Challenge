@@ -17,7 +17,7 @@ var ThreadholdErr error = errors.New("threshold reached")
 // This solution maximizes the driver's capacity as if the closest node cannot be added return to depo.
 //
 // - note: This does not guarantee to use all loads
-// - return (driver, leftover loads )
+// - return (driver path, leftover loads )
 func OptimizeClosetPath(loads []Load) ([]Load, []Load) {
 	// 1. get the current total distance
 	// 2. add the closest load
@@ -121,7 +121,7 @@ type Bucket struct {
 }
 
 // Idea 3 Fail
-// Given a Load adds it to a bucket which returns the lost cost,
+// Given a Load add it to a bucket which returns the lost cost,
 func BucketsTest(driverNum int, loads []Load) ([][]Load, error) {
 	s := stack.New()
 	for i := 0; i < len(loads); i++ {
