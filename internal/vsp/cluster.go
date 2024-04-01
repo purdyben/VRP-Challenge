@@ -39,7 +39,7 @@ func pointDistence(p1, p2 Point) float64 {
 	return math.Sqrt(math.Pow(p2.X()-p1.X(), 2) + math.Pow(p2.Y()-p1.Y(), 2))
 }
 
-// merge cluster mergers points based on there center coordinates
+// merge cluster mergers points based on their center coordinates
 func MergeCluster(loads []Load, threshold float64) []Cluster {
 	clusters := make([]Cluster, len(loads))
 
@@ -64,7 +64,7 @@ func mergeClusters(clusters []Cluster, threshold float64) []Cluster {
 		merged := false
 
 		for i, mergedCluster := range mergedClusters {
-			// distence between centers
+			// distance between centers
 			if pointDistence(cluster.Center(), mergedCluster.Center()) <= threshold {
 				mergedClusters[i].P = append(mergedClusters[i].P, cluster.P...) // merge
 

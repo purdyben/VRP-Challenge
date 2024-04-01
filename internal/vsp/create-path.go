@@ -13,15 +13,15 @@ const MaxDistance = float64(720)
 var ThreadholdErr error = errors.New("threshold reached")
 
 // Idea 1
-// Simple idea, Fron a given set of close points, pick the closes load,
-// This solution maximizes the drivers capacity as if the closes node cannot be added return to depo.
+// Simple idea, Fron a given set of close points, pick the closest load,
+// This solution maximizes the driver's capacity as if the closest node cannot be added return to depo.
 //
-// - note: This does nto guarantee using all the node
+// - note: This does not guarantee to use all loads
 // - return (driver, leftover loads )
 func OptimizeClosetPath(loads []Load) ([]Load, []Load) {
-	// 1. get the current toal distence
+	// 1. get the current total distance
 	// 2. add the closest load
-	// 	idea look ahead if we need to return back to depo
+	// 	idea look ahead if we need to return to depo
 	// 	if all nodes are not used create a new cluster and start again
 
 	path := []Load{}
@@ -56,12 +56,12 @@ func DistanceNextLoad(curr Point, l Load) float64 {
 	return dispickup + disLoad
 }
 
-// Test if you cann the next load or if you need to return to depo
+// Test if you can the next load or if you need to return to depo
 func TestNextLoadViability(curr Point, currDistance float64, l Load) error {
 	dispickup := EuclideanDistance(curr, l.Pickup)
 	disLoad := l.GetDistance()
 
-	// Distence to return to the depo
+	// distance to return to the depo
 	if currDistance+dispickup+disLoad+DistanceFromDepo(l.Dropoff) > MaxDistance {
 		return ThreadholdErr
 	}
@@ -71,7 +71,7 @@ func TestNextLoadViability(curr Point, currDistance float64, l Load) error {
 // =============== i'm leaving in failed ideas to showcase other ideas
 
 // Idea 2 Fail
-// // 1. Go to the farthest nodes first and work backwards.
+// 1. Go to the farthest nodes first and work backward.
 func OptimizeFurthestPath(loads []Load) ([]Load, []Load) {
 	s := stack.New()
 	for i := 0; i < len(loads); i++ {
@@ -140,7 +140,7 @@ func BucketsTest(driverNum int, loads []Load) ([][]Load, error) {
 	for !s.Empty() {
 		nextload := s.Pop().(Load)
 		selectedBucket := -1
-		selectedBucketDistence := math.MaxFloat64
+		selectedBucketDistance := math.MaxFloat64
 
 		for i := range buckets {
 
@@ -149,8 +149,8 @@ func BucketsTest(driverNum int, loads []Load) ([][]Load, error) {
 			if dis+DistanceFromDepo(nextload.Dropoff) > MaxDistance {
 				continue
 			}
-			if dis < selectedBucketDistence {
-				selectedBucketDistence = dis
+			if dis < selectedBucketDistance {
+				selectedBucketDistance = dis
 				selectedBucket = i
 			}
 		}

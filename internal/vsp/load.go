@@ -27,8 +27,8 @@ func DistanceFromDepo(point []float64) float64 {
 	return EuclideanDistance(point, []float64{0, 0})
 }
 
-// this function add start and end node
-// - note: a list of Loads wont incude start, end 0,0
+// this function adds a start and end node
+// - note: a list of Loads won't include start, end 0,0
 func CalcLoadsDistance(path []Load) float64 {
 	points := [][]float64{startnode}
 	for _, l := range path {
@@ -46,7 +46,7 @@ func CalcDistance(points [][]float64) float64 {
 	return dis
 }
 
-// sorts loads in relation to point p
+// sorts load about point p
 func Sort(p Point, loads []Load) []Load {
 	sort.Slice(loads, func(i, j int) bool {
 		d1 := EuclideanDistance(p, loads[i].Pickup)
@@ -56,7 +56,7 @@ func Sort(p Point, loads []Load) []Load {
 	return loads
 }
 
-// Turns a list of Loads into a list of points in order
+// turns a list of Loads into a list of points in order
 func ToPath(loads []Load) []Point {
 	var res []Point
 	for _, l := range loads {
@@ -99,9 +99,7 @@ func Copy(l [][]Load) (c [][]Load) {
 }
 
 // Testing
-//
-// output
-// 0,0 -> (0.3,8.9) (40.9,55.0) -> (-24.5,-19.2) (98.5,1,8) -> (5.3,-61.1) (77.8,-5.4) -> 0,0
+// output:  0,0 -> (0.3,8.9) (40.9,55.0) -> (-24.5,-19.2) (98.5,1,8) -> (5.3,-61.1) (77.8,-5.4) -> 0,0
 // 00 -> (-50.1,80.0) -> (90.1,12.2) -> 0,0
 func CalcLoadsPrint(path []Load) float64 {
 	points := [][]float64{startnode}
@@ -117,8 +115,8 @@ func CalcLoadsPrint(path []Load) float64 {
 	return CalcDistance(points)
 }
 
-// One issue is the fact that im passing []Loads everywhere and intern copying the list
-// TODO change every over to a inter
+// One issue is the fact that I'm passing []Loads everywhere and intern copying the list
+// TODO change every over to an inter
 type Loads struct {
 	L map[int]Load
 }

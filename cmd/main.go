@@ -99,14 +99,14 @@ func main() {
 }
 
 /**
- * Given a cluster threshhold create driver paths and return results to results channel
+ * Given a cluster threshold create driver paths and return results to the results channel
  * loads: Entire file input
  */
 func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
 	var wg sync.WaitGroup
 	for i := range 350 {
 		wg.Add(1)
-		go func(threshhold int) {
+		go func(threshold int) {
 			defer wg.Done()
 
 			// for safty make a copy :)
@@ -114,7 +114,7 @@ func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
 			copy(clone, loads)
 
 			// each cluster is a subset of points near each other
-			clusters := vsp.MergeCluster(clone, float64(threshhold))
+			clusters := vsp.MergeCluster(clone, float64(threshold))
 
 			driverRoutes := [][]vsp.Load{}
 			for _, c := range clusters {
@@ -141,7 +141,7 @@ func EvalMergeClustering(ch chan Result, loads []vsp.Load) {
 }
 
 /**
- * Given a cluster threshhold create driver paths and return results to results channel
+ * Given a cluster threshold create driver paths and return results to results channel
  * loads: Entire file input
  */
 func EvalClusteringKmeans(ch chan Result, loads []vsp.Load) {
@@ -353,7 +353,7 @@ func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
 	var wg sync.WaitGroup
 	for i := range 250 {
 		wg.Add(1)
-		go func(threshhold int) {
+		go func(threshold int) {
 			defer wg.Done()
 			origJSON, err := json.Marshal(loads)
 			if err != nil {
