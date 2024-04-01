@@ -164,6 +164,7 @@ if __name__ == '__main__':
         startTime = time.time()
         output = subprocess.check_output(cmd).decode("utf-8")
         print(cmd)
+        # print(output)
         runTime = time.time() - startTime
         print("\trun time:", runTime, "s")
         if runTime > 30:

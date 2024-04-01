@@ -106,6 +106,14 @@ func ToPath(loads []Load) []Point {
 	return res
 }
 
+func Copy(l [][]Load) (c [][]Load) {
+	for i, p := range l {
+		c = append(c, make([]Load, len(p)))
+		copy(c[i], p)
+	}
+	return
+}
+
 // TODO switch []Load to a static map of
 type Loads struct {
 	L map[int]Load

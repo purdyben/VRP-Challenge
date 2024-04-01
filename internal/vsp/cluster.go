@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"math"
 
-	"vorto/internal/driver"
-
 	"github.com/muesli/clusters"
 )
 
@@ -36,45 +34,6 @@ func (c *Cluster) Loads() []Load {
 	}
 	return l
 }
-
-// func SimpleCluster(loads []Load, threshold float64) []Cluster {
-// 	// Try start with N number of cluster and merge until unable to.
-// 	clusters := make([]Cluster, len(loads))
-
-// 	loads = Sort(startnode, loads)
-// 	for i, l := range loads {
-// 		clusters[i] = Cluster{P: []ClusterPoint{NewClusterPoint(l)}}
-// 	}
-
-// 	merged := true
-// 	for merged {
-// 		merged = false
-// 		for i := range clusters {
-// 			for j := i + 1; j < len(clusters); j++ {
-// 				centroid1 := calculateCentroid(clusters[i])
-// 				centroid2 := calculateCentroid(clusters[j])
-
-// 				distance := calculateDistance(centroid1, centroid2)
-
-// 				if distance < threshold {
-// 					clusters[i].P = append(clusters[i].P, clusters[j].P...)
-
-// 					fmt.Println(clusters[:j])
-// 					fmt.Println(clusters[j+1:])
-
-// 					clusters = append(clusters[:j], clusters[j+1:]...)
-// 					merged = true
-// 					break
-// 				}
-// 			}
-// 			if merged {
-// 				break
-// 			}
-// 		}
-// 	}
-
-// 	return clusters
-// }
 
 func d(p1, p2 Point) float64 {
 	return math.Sqrt(math.Pow(p2.X()-p1.X(), 2) + math.Pow(p2.Y()-p1.Y(), 2))
@@ -131,7 +90,7 @@ func calculateDistance(point1, point2 []float64) float64 {
 func calculateCentroid(cluster Cluster) []float64 {
 	var sumX, sumY float64
 	for _, point := range cluster.Points() {
-		m := driver.Middle(point.Pickup, point.Dropoff)
+		m := Middle(point.Pickup, point.Dropoff)
 		sumX += m[0]
 		sumY += m[1]
 	}
