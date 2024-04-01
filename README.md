@@ -1,9 +1,9 @@
 Benjamin Purdy Vorto VTP Challange
 
 #### Problem:
-The vehicle routing problem (VRP) asks "What is the optimal set of routes for a fleet of vehicles to traverse to deliver to a given set of customers?" It generalizes the traveling salesman problem (TSP). 
+The vehicle routing problem (VRP) asks "What is the optimal set of routes for a fleet of vehicles to traverse to deliver to a given set of customers?"
 
-Determining the optimal solution to VRP is NP-hard. Felt this 
+Determining the optimal solution to VRP is NP-hard. 
 
 #### Instructions How to Run:
 
