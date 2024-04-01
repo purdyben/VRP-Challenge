@@ -1,5 +1,10 @@
 package vsp
 
+// Given a list of Loads, calcuate the total cost of this trip
+//
+// - note: its implied that this list of loads is
+//   - 1 under the hr threshold
+//   - 2 inorder for the driver to do
 func LoadsTotalCost(loads []Load) float64 {
 	points := []Point{startnode}
 	for _, l := range loads {

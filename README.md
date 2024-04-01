@@ -1,9 +1,16 @@
 Benjamin Purdy Vorto VTP Challange
 
-#### Instructions:
+#### Problem:
+The vehicle routing problem (VRP) which asks "What is the optimal set of routes for a fleet of vehicles to traverse in order to deliver to a given set of customers?" It generalises the travelling salesman problem (TSP). 
 
-Please Run ```Make``` to build the go binary stored in /bin/main 
+Determining the optimal solution to VRP is NP-hard. Felt this 
 
+#### Instructions How to Run:
+
+Please Run ```make``` to build the go binary stored in /bin/main 
+
+```make eval``` will build and run evaluateShared.py and test data trainingProblems
+ 
 Alternatively please run ```make evalb args="--problemDir YOUR_FOLDER"```
 
 to build and run your evaluation  
@@ -12,9 +19,9 @@ to build and run your evaluation
 
 #### Solution: 
 
-#### Interesting Notes 
+#### Interesting Notes:
 
-#### Failers 
+#### Failers:
 As every driver starts and end at (0,0) we will in turn create a weighted tree structure and with a cyclic component. 
 
 

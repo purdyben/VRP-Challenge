@@ -92,79 +92,10 @@ func main() {
 		EvalClusteringKmeans(results, loads)
 	}(results)
 
-	// Test without clustering
-	// wg.Add(1)
-	// go func() {
-	// 	defer wg.Done()
-	// 	driverPaths := [][]vsp.Load{}
-	// 	driverRoutes := RecursivelyComputePath(loads)
-
-	// 	for _, l := range driverRoutes {
-	// 		driverPaths = append(driverPaths, l)
-	// 	}
-
-	// 	// fmt.Println(EvalResult((driverRoutes)).PrintOut)
-	// 	// fmt.Println(EvalResult(CombineJobs(driverRoutes)).PrintOut)
-	// 	// fmt.Println()
-	// 	driverRoutes = CombineJobs(driverRoutes)
-	// 	results <- EvalResult(driverPaths)
-	// }()
-
 	wg.Wait()
 	exit <- true
 	fmt.Println(strings.Trim(answer.PrintOut, "\n"))
 	// fmt.Println(answer.Cost)
-}
-
-func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
-	var wg sync.WaitGroup
-	for i := range 250 {
-		wg.Add(1)
-		go func(threshhold int) {
-			defer wg.Done()
-			origJSON, err := json.Marshal(loads)
-			if err != nil {
-				panic(err)
-			}
-
-			clone := []vsp.Load{}
-			if err = json.Unmarshal(origJSON, &clone); err != nil {
-				panic(err)
-			}
-			clusters := vsp.MergeCluster(clone, float64(i))
-
-			allPaths := [][]vsp.Load{}
-
-			for _, c := range clusters {
-				buckets := 4
-				var driverPaths [][]vsp.Load
-				for {
-					driverPaths, err = vsp.Greedy(buckets, c.Loads())
-					if err != nil {
-						buckets += 1
-						continue
-					}
-					break
-				}
-				for _, d := range driverPaths {
-					allPaths = append(allPaths, d)
-				}
-			}
-
-			// // pathsOfPoints := [][]vsp.Point{}
-			// driverPaths := [][]vsp.Load{}
-			// for _, c := range clusters {
-			// 	driverRoutes := RecursivelyComputePath(c.Loads())
-
-			// 	for _, l := range driverRoutes {
-			// 		driverPaths = append(driverPaths, l)
-			// 	}
-			// }
-			// fmt.Println(EvalResult(allPaths))
-			ch <- EvalResult(allPaths)
-		}(10 + i)
-	}
-	wg.Wait()
 }
 
 /**
@@ -414,4 +345,72 @@ func readFile(path string) ([]byte, error) {
 		panic(err)
 	}
 	return b, err
+}
+
+// =====  Failed tests disregards
+
+func TestClusteringGreedyThreshhold(ch chan Result, loads []vsp.Load) {
+	var wg sync.WaitGroup
+	for i := range 250 {
+		wg.Add(1)
+		go func(threshhold int) {
+			defer wg.Done()
+			origJSON, err := json.Marshal(loads)
+			if err != nil {
+				panic(err)
+			}
+
+			clone := []vsp.Load{}
+			if err = json.Unmarshal(origJSON, &clone); err != nil {
+				panic(err)
+			}
+			clusters := vsp.MergeCluster(clone, float64(i))
+
+			allPaths := [][]vsp.Load{}
+
+			for _, c := range clusters {
+				buckets := 4
+				var driverPaths [][]vsp.Load
+				for {
+					driverPaths, err = vsp.BucketsTest(buckets, c.Loads())
+					if err != nil {
+						buckets += 1
+						continue
+					}
+					break
+				}
+				for _, d := range driverPaths {
+					allPaths = append(allPaths, d)
+				}
+			}
+
+			// // pathsOfPoints := [][]vsp.Point{}
+			// driverPaths := [][]vsp.Load{}
+			// for _, c := range clusters {
+			// 	driverRoutes := RecursivelyComputePath(c.Loads())
+
+			// 	for _, l := range driverRoutes {
+			// 		driverPaths = append(driverPaths, l)
+			// 	}
+			// }
+			// fmt.Println(EvalResult(allPaths))
+			ch <- EvalResult(allPaths)
+		}(10 + i)
+	}
+	wg.Wait()
+}
+
+func TestWithOutClustering(ch chan Result, loads []vsp.Load) {
+	driverPaths := [][]vsp.Load{}
+	driverRoutes := RecursivelyComputePath(loads)
+
+	for _, l := range driverRoutes {
+		driverPaths = append(driverPaths, l)
+	}
+	ch <- EvalResult(driverPaths)
+
+	for i := range 3 {
+		c := vsp.Copy(driverRoutes)
+		ch <- EvalResult(CombineJobs(c, i)) // optimization test
+	}
 }

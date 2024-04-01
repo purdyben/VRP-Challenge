@@ -20,7 +20,7 @@ type Cluster struct {
 }
 
 func (c *Cluster) Center() []float64 {
-	return calculateCentroid(*c)
+	return clusterCenter(c)
 }
 
 func (c *Cluster) Points() []ClusterPoint {
@@ -35,40 +35,38 @@ func (c *Cluster) Loads() []Load {
 	return l
 }
 
-func d(p1, p2 Point) float64 {
+func pointDistence(p1, p2 Point) float64 {
 	return math.Sqrt(math.Pow(p2.X()-p1.X(), 2) + math.Pow(p2.Y()-p1.Y(), 2))
 }
 
+// merge cluster mergers points based on there center coordinates
 func MergeCluster(loads []Load, threshold float64) []Cluster {
 	clusters := make([]Cluster, len(loads))
 
-	for i, l := range loads {
+	for i, l := range loads { // start with len(loads) number ofo clusters
 		clusters[i] = Cluster{
 			P: []ClusterPoint{NewClusterPoint(l)},
 		}
 	}
-	// fmt.Println(len(clusters))
 	for {
-		// fmt.Println(clusters)
 		newClusters := mergeClusters(clusters, threshold)
 		if len(newClusters) == len(clusters) {
 			break
 		}
 		clusters = newClusters
-		// fmt.Println(len(clusters))
 	}
 	return clusters
 }
 
 func mergeClusters(clusters []Cluster, threshold float64) []Cluster {
 	var mergedClusters []Cluster
-	// fmt.Println(len(clusters))
 	for _, cluster := range clusters {
 		merged := false
 
 		for i, mergedCluster := range mergedClusters {
-			if d(cluster.Center(), mergedCluster.Center()) <= threshold {
-				mergedClusters[i].P = append(mergedClusters[i].P, cluster.P...)
+			// distence between centers
+			if pointDistence(cluster.Center(), mergedCluster.Center()) <= threshold {
+				mergedClusters[i].P = append(mergedClusters[i].P, cluster.P...) // merge
 
 				merged = true
 				break
@@ -79,7 +77,6 @@ func mergeClusters(clusters []Cluster, threshold float64) []Cluster {
 			mergedClusters = append(mergedClusters, cluster)
 		}
 	}
-	// fmt.Println(len(clusters))
 	return mergedClusters
 }
 
@@ -87,7 +84,8 @@ func calculateDistance(point1, point2 []float64) float64 {
 	return math.Sqrt(math.Pow(point1[0]-point2[0], 2) + math.Pow(point1[1]-point2[1], 2))
 }
 
-func calculateCentroid(cluster Cluster) []float64 {
+// get cluster center
+func clusterCenter(cluster *Cluster) []float64 {
 	var sumX, sumY float64
 	for _, point := range cluster.Points() {
 		m := Middle(point.Pickup, point.Dropoff)
@@ -97,6 +95,7 @@ func calculateCentroid(cluster Cluster) []float64 {
 	return []float64{sumX / float64(len(cluster.Points())), sumY / float64(len(cluster.Points()))}
 }
 
+// testing function
 func PrintCuster(cl []Cluster) {
 	for i, c := range cl {
 		for _, p := range c.Points() {
@@ -107,6 +106,8 @@ func PrintCuster(cl []Cluster) {
 }
 
 // Another idea is to use Kmeans clustering, this has a defined cluster number which could be an issue
+
+// kmean github.com/muesli/clusters package wrapper
 type KmeansClusterObservable struct {
 	Load
 }

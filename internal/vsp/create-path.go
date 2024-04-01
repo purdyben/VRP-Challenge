@@ -13,45 +13,64 @@ const MaxDistance = float64(720)
 var ThreadholdErr error = errors.New("threshold reached")
 
 // Idea 1
-// Vary simple idea, Fron a given point pick the closes load,
+// Simple idea, Fron a given set of close points, pick the closes load,
 // This solution maximizes the drivers capacity as if the closes node cannot be added return to depo.
 //
-// This does nto guarantee using all the nodes
+// - note: This does nto guarantee using all the node
+// - return (driver, leftover loads )
 func OptimizeClosetPath(loads []Load) ([]Load, []Load) {
-	// finalLoads := [][]Load{}
 	// 1. get the current toal distence
-	// 2. add the closest node
-	// 3 check if we can
+	// 2. add the closest load
 	// 	idea look ahead if we need to return back to depo
 	// 	if all nodes are not used create a new cluster and start again
 
 	path := []Load{}
 	currDis := float64(0)
 	currPoint := startnode // <- current starting point is 0,0
-	// fmt.Println(loads)
+
 	for len(loads) > 0 {
-		loads = Sort(currPoint, loads) //<- sort by closes node first
+		loads = Sort(currPoint, loads) //<- Sort see Load.go, sorts by closes load
 		if len(loads) == 0 {
 			break
 		}
 		nextload := loads[0]
 
 		loads = loads[1:]
-		err := TestNextLoad(currPoint, currDis, nextload)
+		err := TestNextLoadViability(currPoint, currDis, nextload)
 		if err != nil {
 			loads = append(loads, nextload)
-			// fmt.Println("TestNextLoad failed", loads)
+			// fmt.Println("TestNextLoadViability failed", loads)
 			break
 		}
 
 		path = append(path, nextload)
-		currDis += LookAheadDist(currPoint, nextload)
+		currDis += DistanceNextLoad(currPoint, nextload)
 		currPoint = nextload.Dropoff
 	}
 	return path, loads
 }
 
-// Idea 2 Fail Result Is Worse
+func DistanceNextLoad(curr Point, l Load) float64 {
+	dispickup := EuclideanDistance(curr, l.Pickup)
+	disLoad := l.GetDistance()
+	return dispickup + disLoad
+}
+
+// Test if you cann the next load or if you need to return to depo
+func TestNextLoadViability(curr Point, currDistance float64, l Load) error {
+	dispickup := EuclideanDistance(curr, l.Pickup)
+	disLoad := l.GetDistance()
+
+	// Distence to return to the depo
+	if currDistance+dispickup+disLoad+DistanceFromDepo(l.Dropoff) > MaxDistance {
+		return ThreadholdErr
+	}
+	return nil
+}
+
+// =============== i'm leaving in failed ideas to showcase other ideas
+
+// Idea 2 Fail
 // // 1. Go to the farthest nodes first and work backwards.
 func OptimizeFurthestPath(loads []Load) ([]Load, []Load) {
 	s := stack.New()
@@ -68,12 +87,12 @@ func OptimizeFurthestPath(loads []Load) ([]Load, []Load) {
 	nextload := loads[len(loads)-1]
 
 	loads = loads[:len(loads)-1]
-	err := TestNextLoad(currPoint, currDis, nextload)
+	err := TestNextLoadViability(currPoint, currDis, nextload)
 	if err != nil {
 		loads = append(loads, nextload)
 	}
 	path = append(path, nextload)
-	currDis += LookAheadDist(currPoint, nextload)
+	currDis += DistanceNextLoad(currPoint, nextload)
 	currPoint = nextload.Dropoff
 
 	for !s.Empty() {
@@ -82,35 +101,17 @@ func OptimizeFurthestPath(loads []Load) ([]Load, []Load) {
 
 		// loads = loads[1:]
 
-		err := TestNextLoad(currPoint, currDis, nextload)
+		err := TestNextLoadViability(currPoint, currDis, nextload)
 		if err != nil {
 			// loads = append(loads, nextload)
 			break
 		}
 
 		path = append(path, nextload)
-		currDis += LookAheadDist(currPoint, nextload)
+		currDis += DistanceNextLoad(currPoint, nextload)
 		currPoint = nextload.Dropoff
 	}
 	return path, loads
-}
-
-func LookAheadDist(curr Point, l Load) float64 {
-	dispickup := EuclideanDistance(curr, l.Pickup)
-	disLoad := l.GetDistance()
-	return dispickup + disLoad
-}
-
-// currDistance includes starting point,
-func TestNextLoad(curr Point, currDistance float64, l Load) error {
-	dispickup := EuclideanDistance(curr, l.Pickup)
-	disLoad := l.GetDistance()
-
-	// Distence to return to the depo
-	if currDistance+dispickup+disLoad+DistanceFromDepo(l.Dropoff) > MaxDistance {
-		return ThreadholdErr
-	}
-	return nil
 }
 
 type Bucket struct {
@@ -121,7 +122,7 @@ type Bucket struct {
 
 // Idea 3 Fail
 // Given a Load adds it to a bucket which returns the lost cost,
-func Greedy(driverNum int, loads []Load) ([][]Load, error) {
+func BucketsTest(driverNum int, loads []Load) ([][]Load, error) {
 	s := stack.New()
 	for i := 0; i < len(loads); i++ {
 		s.Push(loads[i])
