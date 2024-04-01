@@ -20,8 +20,6 @@ func (p Point) Equal(p2 Point) bool {
 	return p.X() == p2.X() && p.Y() == p2.Y()
 }
 
-// Code from from https://pkg.go.dev/github.com/dougwatson/Go/v3/math/geometry
-// modifyed
 func EuclideanDistance(p1 Point, p2 Point) float64 {
 	n := len(p1)
 
