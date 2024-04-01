@@ -40,6 +40,6 @@ Best Score
 - mean run time: 279.8213050478981ms
 
 
-Note: 
+#### Note: 
 - type  []Load: unfiltered Loads or a list of loads for a driver 
 - type  [][]Load: list of all drivers and the driver loads 
