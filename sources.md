@@ -1,6 +1,6 @@
 
 
-VSP
+VSP & TSP
 https://en.wikipedia.org/wiki/Vehicle_routing_problem
 https://en.wikipedia.org/wiki/Travelling_salesman_problem
 https://en.wikipedia.org/wiki/Greedy_algorithm

@@ -36,6 +36,4 @@ Best Score
 - mean cost: 47759.118072847494
 - mean run time: 279.8213050478981ms
 
-#### Notes:
-- This was not optimized for run time. As improvements can be done  
 
