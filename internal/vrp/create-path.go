@@ -39,7 +39,6 @@ func OptimizeClosetPath(loads []Load) ([]Load, []Load) {
 		err := TestNextLoadViability(currPoint, currDis, nextload)
 		if err != nil {
 			loads = append(loads, nextload)
-			// fmt.Println("TestNextLoadViability failed", loads)
 			break
 		}
 
@@ -80,7 +79,6 @@ func OptimizeFurthestPath(loads []Load) ([]Load, []Load) {
 	path := []Load{}
 	currDis := float64(0)
 	currPoint := startnode // <- current starting point is 0,0
-	// fmt.Println(loads)
 
 	// Get furthest first
 	loads = Sort(currPoint, loads) //<- sort by closes node first
@@ -97,9 +95,6 @@ func OptimizeFurthestPath(loads []Load) ([]Load, []Load) {
 
 	for !s.Empty() {
 		nextload := s.Pop().(Load)
-		// nextload := loads[0]
-
-		// loads = loads[1:]
 
 		err := TestNextLoadViability(currPoint, currDis, nextload)
 		if err != nil {
