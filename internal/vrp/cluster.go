@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/muesli/clusters"
+	"github.com/parallelo-ai/kmeans"
 )
 
 type ClusterPoint struct {
@@ -116,11 +116,11 @@ func NewClusterObservable(l Load) KmeansClusterObservable {
 	return KmeansClusterObservable{l}
 }
 
-func (c KmeansClusterObservable) Coordinates() clusters.Coordinates {
+func (c KmeansClusterObservable) Coordinates() kmeans.Coordinates {
 	return Middle(c.Pickup, c.Dropoff)
 }
 
-func (c KmeansClusterObservable) Distance(point clusters.Coordinates) float64 {
+func (c KmeansClusterObservable) Distance(point kmeans.Coordinates) float64 {
 	return c.GetDistance()
 }
 

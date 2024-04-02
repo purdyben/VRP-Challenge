@@ -19,8 +19,7 @@ import (
 
 	"vorto/internal/vrp"
 
-	"github.com/muesli/clusters"
-	"github.com/muesli/kmeans"
+	"github.com/parallelo-ai/kmeans"
 )
 
 // Cli
@@ -104,6 +103,7 @@ func main() {
  * loads: Entire file input
  */
 func EvalMergeClustering(ch chan Result, loads []vrp.Load) {
+	n := len(loads)
 	var wg sync.WaitGroup
 	for i := range 350 {
 		wg.Add(1)
@@ -130,11 +130,12 @@ func EvalMergeClustering(ch chan Result, loads []vrp.Load) {
 			}
 
 			// evaluate results
-			ch <- EvalResult(driverRoutes)
+			ch <- EvalResult(driverRoutes, n)
 
 			for i := range 3 {
 				c := vrp.Copy(driverRoutes)
-				ch <- EvalResult(CombineJobs(c, i)) // optimization test
+
+				ch <- EvalResult(CombineJobs(c, i), n)
 			}
 		}(10 + i)
 	}
@@ -146,14 +147,15 @@ func EvalMergeClustering(ch chan Result, loads []vrp.Load) {
  * loads: Entire file input
  */
 func EvalClusteringKmeans(ch chan Result, loads []vrp.Load) {
+	n := len(loads)
 	for i := 1; (i) < int(math.Max(float64((len(loads)%3)), 4)); i++ { // test multiple number of clusters
-		var d clusters.Observations
+		var d kmeans.Observations
 		for _, l := range loads {
 			d = append(d, vrp.NewClusterObservable(l)) // wrapper for Observations interface
 		}
 
-		km, err := kmeans.NewWithOptions(0.05, nil)
-		clusters, err := km.Partition(d, i)
+		km := kmeans.New()
+		clusters, err := km.Partition(d, i, 256)
 		if err != nil {
 			return
 		}
@@ -163,38 +165,33 @@ func EvalClusteringKmeans(ch chan Result, loads []vrp.Load) {
 
 		for _, c := range clusters { // Get Nodes from Cluster
 
-			l := []vrp.Load{}
+			clusterLoads := []vrp.Load{}
 			for _, o := range c.Observations {
 				loadData := o.(vrp.KmeansClusterObservable).Data() // unwrap load data
-
-				l = append(l, loadData)
-				// TODO remove duplicate checker
-				// if _, ok := n[loadData.LoadNumber]; !ok {
-				// 	n[loadData.LoadNumber] = 1
-				// l = append(l, loadData)
-				// }
+				clusterLoads = append(clusterLoads, loadData)
 			}
 			// create driver paths from subset
-			for _, l := range RecursivelyComputePath(l) {
+			for _, l := range RecursivelyComputePath(clusterLoads) {
 				driverRoutes = append(driverRoutes, l)
 			}
 		}
-
 		// evaluate results
-		ch <- EvalResult(driverRoutes)
-
+		ch <- EvalResult(driverRoutes, n)
 		for i := range 3 {
 			c := vrp.Copy(driverRoutes)
-			ch <- EvalResult(CombineJobs(c, i))
+			ch <- EvalResult(CombineJobs(c, i), n)
 		}
 	}
 }
 
 // Stored the printout and total cost, Used for Eval
-func EvalResult(drivers [][]vrp.Load) Result {
+func EvalResult(drivers [][]vrp.Load, totalLoadNumber int) Result {
 	r := Result{
 		Cost:     0,
 		PrintOut: "",
+	}
+	if !CheckValidSolution(drivers, totalLoadNumber) {
+		return Result{Cost: math.MaxFloat64}
 	}
 	// pathsOfPoints := [][]vrp.Point{}
 	// Each List of Loads is the route the driver needs to drive
@@ -221,7 +218,6 @@ func EvalResult(drivers [][]vrp.Load) Result {
 			}
 		}
 	}
-
 	return r
 }
 
@@ -347,7 +343,26 @@ func readFile(path string) ([]byte, error) {
 	return b, err
 }
 
-// =====  Failed tests disregards
+// Make sure all loads are used and no duplicates
+func CheckValidSolution(solution [][]vrp.Load, n int) bool {
+	// Check for duplicates and to make sure ever load is present
+	m := make(map[int]int)
+	count := 0
+
+	for _, d := range solution {
+		count += len(d)
+		for _, l := range d {
+			if _, ok := m[l.LoadNumber]; ok {
+				return false // duplicates
+			}
+			m[l.LoadNumber] = 1
+		}
+	}
+
+	return count == n
+}
+
+// =====  Failed tests disregard
 
 func TestClusteringGreedyThreshhold(ch chan Result, loads []vrp.Load) {
 	var wg sync.WaitGroup
@@ -384,7 +399,7 @@ func TestClusteringGreedyThreshhold(ch chan Result, loads []vrp.Load) {
 				}
 			}
 
-			ch <- EvalResult(allPaths)
+			ch <- EvalResult(allPaths, len(loads))
 		}(10 + i)
 	}
 	wg.Wait()
@@ -397,10 +412,11 @@ func TestWithOutClustering(ch chan Result, loads []vrp.Load) {
 	for _, l := range driverRoutes {
 		driverPaths = append(driverPaths, l)
 	}
-	ch <- EvalResult(driverPaths)
+
+	ch <- EvalResult(driverPaths, len(loads))
 
 	for i := range 3 {
 		c := vrp.Copy(driverRoutes)
-		ch <- EvalResult(CombineJobs(c, i)) // optimization test
+		ch <- EvalResult(CombineJobs(c, i), len(loads)) // optimization test
 	}
 }
