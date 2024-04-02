@@ -7,7 +7,6 @@ Benjamin Purdy Vorto Algorithmic Challenge Submission
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -76,7 +75,7 @@ func main() {
 		}
 	}()
 
-	// Test 1 Using heuristic clustering
+	// Test 1 Using Merge Clustering
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -93,6 +92,7 @@ func main() {
 
 	wg.Wait()
 	exit <- true
+
 	// Note this line Print the output to be evaluated
 	fmt.Println(strings.Trim(answer.PrintOut, "\n"))
 	// fmt.Println(answer.Cost)
@@ -161,8 +161,6 @@ func EvalClusteringKmeans(ch chan Result, loads []vrp.Load) {
 		}
 		driverRoutes := [][]vrp.Load{}
 
-		// n := make(map[int]int)
-
 		for _, c := range clusters { // Get Nodes from Cluster
 
 			clusterLoads := []vrp.Load{}
@@ -193,7 +191,6 @@ func EvalResult(drivers [][]vrp.Load, totalLoadNumber int) Result {
 	if !CheckValidSolution(drivers, totalLoadNumber) {
 		return Result{Cost: math.MaxFloat64}
 	}
-	// pathsOfPoints := [][]vrp.Point{}
 	// Each List of Loads is the route the driver needs to drive
 	for index, d := range drivers {
 
@@ -363,47 +360,6 @@ func CheckValidSolution(solution [][]vrp.Load, n int) bool {
 }
 
 // =====  Failed tests disregard
-
-func TestClusteringGreedyThreshhold(ch chan Result, loads []vrp.Load) {
-	var wg sync.WaitGroup
-	for i := range 250 {
-		wg.Add(1)
-		go func(threshold int) {
-			defer wg.Done()
-			origJSON, err := json.Marshal(loads)
-			if err != nil {
-				panic(err)
-			}
-
-			clone := []vrp.Load{}
-			if err = json.Unmarshal(origJSON, &clone); err != nil {
-				panic(err)
-			}
-			clusters := vrp.MergeCluster(clone, float64(threshold))
-
-			allPaths := [][]vrp.Load{}
-
-			for _, c := range clusters {
-				buckets := 4
-				var driverPaths [][]vrp.Load
-				for {
-					driverPaths, err = vrp.BucketsTest(buckets, c.Loads())
-					if err != nil {
-						buckets += 1
-						continue
-					}
-					break
-				}
-				for _, d := range driverPaths {
-					allPaths = append(allPaths, d)
-				}
-			}
-
-			ch <- EvalResult(allPaths, len(loads))
-		}(10 + i)
-	}
-	wg.Wait()
-}
 
 func TestWithOutClustering(ch chan Result, loads []vrp.Load) {
 	driverPaths := [][]vrp.Load{}
